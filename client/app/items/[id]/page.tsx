@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_BASE, authFetch } from '@/lib/api';
 import type { Item } from '@/types/item';
-import type { User } from '@/types/user';
 
 export default function ItemDetailPage() {
   const { id } = useParams();
