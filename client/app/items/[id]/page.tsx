@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_BASE, authFetch } from '@/lib/api';
 import type { Item } from '@/types/item';
+import type { User } from '@/types/user';
 
 export default function ItemDetailPage() {
   const { id } = useParams();
@@ -12,24 +13,30 @@ export default function ItemDetailPage() {
   const [loading, setLoading] = useState(true);
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [buying, setBuying] = useState(false);
+  const [purchaseComplete, setPurchaseComplete] = useState(false);
+
+  const fetchItem = async () => {
+    setLoading(true);
+    setErrMsg(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/items/${id}`);
+      const data = await res.json();
+      setItem(data);
+    } catch (err: any) {
+      setErrMsg(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/items/${id}`);
-        const data = await res.json();
-        setItem(data);
-      } catch (err: any) {
-        setErrMsg(err.message);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    fetchItem();
   }, [id]);
 
   const handleBuy = async () => {
     if (!item) return;
     setBuying(true);
+    setErrMsg(null);
     try {
       const res = await authFetch(`${API_BASE}/api/items/${item._id}`, {
         method: 'PUT',
@@ -42,8 +49,8 @@ export default function ItemDetailPage() {
         throw new Error(data?.message || '購入に失敗しました');
       }
 
-      alert('購入が完了しました！');
-      router.push('/items');
+      setPurchaseComplete(true);
+      await fetchItem();
     } catch (err: any) {
       setErrMsg(err.message);
     } finally {
@@ -52,7 +59,12 @@ export default function ItemDetailPage() {
   };
 
   if (loading) return <div className="p-8 text-zinc-500">Loading...</div>;
-  if (errMsg) return <div className="p-8 text-red-500">{errMsg}</div>;
+  if (errMsg)
+    return (
+      <div className="p-8 bg-red-100 text-red-800 rounded-lg border border-red-400 max-w-3xl mx-auto my-8">
+        {errMsg}
+      </div>
+    );
   if (!item) return <div className="p-8 text-zinc-500">商品が見つかりません。</div>;
 
   return (
@@ -71,11 +83,15 @@ export default function ItemDetailPage() {
         </p>
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">{item.description}</p>
 
+        {purchaseComplete && (
+          <div className="mt-4 rounded-lg bg-green-100 p-4 text-green-800 dark:bg-green-900 dark:text-green-300">
+            購入完了
+          </div>
+        )}
+
         <div className="mt-6 flex gap-3">
           {item.sold ? (
-            <span className="rounded-lg bg-red-600 px-4 py-2 text-white">
-              SOLD OUT
-            </span>
+            <span className="rounded-lg bg-red-600 px-4 py-2 text-white">SOLD OUT</span>
           ) : (
             <button
               onClick={handleBuy}
